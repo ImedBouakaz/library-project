@@ -9,6 +9,9 @@ export interface BookAuthor {
 export interface WikiInfo {
   extract?: string;
   url?: string;
+  thumbnail?: string;
+  categories?: string[];
+  langlinks?: { [key: string]: string };
 }
 
 export interface Book {
@@ -189,29 +192,47 @@ const useBookStore = create<BookStore>((set) => ({
 
       let wikiInfo: WikiInfo | undefined;
       try {
-        const searchTerm = `${bookData.title} ${authors.length > 0 ? 'by ' + authors[0].name : ''}`;
+        // Construire une requête plus précise pour Wikipédia
+        const searchTerm = `${bookData.title} ${authors.length > 0 ? authors[0].name : ''} livre`;
         const wikiUrl = new URL('https://fr.wikipedia.org/w/api.php');
         wikiUrl.searchParams.append('action', 'query');
         wikiUrl.searchParams.append('format', 'json');
-        wikiUrl.searchParams.append('prop', 'extracts|info');
+        wikiUrl.searchParams.append('prop', 'extracts|info|pageimages|categories|langlinks');
         wikiUrl.searchParams.append('exintro', '1');
         wikiUrl.searchParams.append('explaintext', '1');
         wikiUrl.searchParams.append('inprop', 'url');
-        wikiUrl.searchParams.append('titles', searchTerm);
+        wikiUrl.searchParams.append('pithumbsize', '300');
+        wikiUrl.searchParams.append('clshow', '!hidden');
+        wikiUrl.searchParams.append('cllimit', '10');
+        wikiUrl.searchParams.append('lllimit', '10');
+        wikiUrl.searchParams.append('generator', 'search');
+        wikiUrl.searchParams.append('gsrnamespace', '0');
+        wikiUrl.searchParams.append('gsrlimit', '1');
+        wikiUrl.searchParams.append('gsrsearch', searchTerm);
         wikiUrl.searchParams.append('origin', '*');
 
         const wikiResponse = await fetch(wikiUrl.toString());
         
         if (wikiResponse.ok) {
           const wikiData = await wikiResponse.json();
-          const pages = wikiData.query.pages;
-          const pageId = Object.keys(pages)[0];
-          
-          if (pageId !== '-1') {
-            wikiInfo = {
-              extract: pages[pageId].extract,
-              url: pages[pageId].fullurl
-            };
+          if (wikiData.query && wikiData.query.pages) {
+            const pages = wikiData.query.pages;
+            const pageId = Object.keys(pages)[0];
+            const page = pages[pageId];
+            
+            if (pageId !== '-1') {
+              wikiInfo = {
+                extract: page.extract,
+                url: page.fullurl,
+                thumbnail: page.thumbnail?.source,
+                categories: page.categories?.map((cat: { title: string }) => 
+                  cat.title.replace('Catégorie:', '')),
+                langlinks: page.langlinks?.reduce((acc: { [key: string]: string }, link: { lang: string; url: string }) => {
+                  acc[link.lang] = link.url;
+                  return acc;
+                }, {})
+              };
+            }
           }
         }
       } catch (wikiError) {

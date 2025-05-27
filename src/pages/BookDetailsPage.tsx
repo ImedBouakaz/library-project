@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useBookStore from '../store/useBookStore';
+import WikiSection from '../components/WikiSection';
 
 const BookDetailsPage = () => {
   const { bookId } = useParams<{ bookId: string }>();
@@ -122,24 +123,7 @@ const BookDetailsPage = () => {
               </div>
             )}
 
-            {currentBook.wikiInfo?.extract && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2">Sur Wikipedia</h2>
-                <p className="text-gray-700 leading-relaxed">
-                  {currentBook.wikiInfo.extract}
-                </p>
-                {currentBook.wikiInfo.url && (
-                  <a
-                    href={currentBook.wikiInfo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 mt-2 inline-block"
-                  >
-                    Lire plus sur Wikipedia →
-                  </a>
-                )}
-              </div>
-            )}
+            {currentBook.wikiInfo && <WikiSection wikiInfo={currentBook.wikiInfo} />}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentBook.first_publish_year && (

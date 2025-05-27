@@ -1,14 +1,41 @@
-import react from 'react';
+import React from 'react';
+import RecentChanges from '../components/RecentChanges';
 
 const LandingPage = () => {
   return (
-    <div className="h-screen w-full bg-gradient-to-r from-blue-500 to-teal-500 flex flex-col items-center justify-center text-white p-4">
-      {/* Navbar is now in App.tsx */}
-      <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-center">Bienvenue dans notre Librairie</h1>
-      <p className="text-xl md:text-2xl mb-8 text-center max-w-2xl">Découvrez notre collection de livres et explorez de nouvelles histoires.</p>
-      <button className="bg-white text-blue-600 font-semibold px-8 py-3 rounded-full shadow-lg hover:bg-gray-200 transition duration-300 text-lg">
-        Explorer les livres
-      </button>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Bienvenue sur Library Project
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Découvrez notre vaste collection de livres et restez informé des dernières mises à jour de notre bibliothèque.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">À propos</h2>
+            <p className="text-gray-600">
+              Library Project est une application moderne qui vous permet d'explorer
+              une vaste collection de livres. Vous pouvez rechercher des livres,
+              consulter leurs détails et suivre les mises à jour de la bibliothèque
+              en temps réel.
+            </p>
+            <div className="mt-6">
+              <a
+                href="/books"
+                className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Explorer les livres
+              </a>
+            </div>
+          </div>
+
+          <RecentChanges />
+        </div>
+      </div>
     </div>
   );
 };
