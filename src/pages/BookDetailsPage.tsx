@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useBookStore from '../store/useBookStore';
 import WikiSection from '../components/WikiSection';
+import { Alert, AlertIcon, AlertTitle, AlertDescription, Box } from '@chakra-ui/react';
 
 const BookDetailsPage = () => {
   const { bookId } = useParams<{ bookId: string }>();
@@ -36,12 +37,11 @@ const BookDetailsPage = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6 mt-8">
-        <div className="text-red-600 text-center">
-          <p className="text-xl font-semibold">Une erreur est survenue</p>
-          <p className="mt-2">{error}</p>
-        </div>
-      </div>
+      <Alert status="error" borderRadius="lg" boxShadow="md" mt={8} justifyContent="center">
+        <Box as="span" fontSize="2xl" mr={2} role="img" aria-label="Plante fanée">🥀</Box>
+        <AlertTitle fontWeight="bold" mr={2}>Erreur :</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
@@ -82,7 +82,17 @@ const BookDetailsPage = () => {
         Retour
       </button>
 
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div
+        style={{
+          borderRadius: '1.5rem',
+          backdropFilter: 'blur(16px)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 60%, rgba(200,255,220,0.18) 100%)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 8px 32px 0 rgba(34,197,94,0.15)',
+          border: '1.5px solid rgba(255,255,255,0.4)',
+        }}
+        className="shadow-lg p-6"
+      >
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-shrink-0">
             {coverUrl ? (
@@ -123,8 +133,6 @@ const BookDetailsPage = () => {
               </div>
             )}
 
-            {currentBook.wikiInfo && <WikiSection wikiInfo={currentBook.wikiInfo} />}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentBook.first_publish_year && (
                 <div>
@@ -147,7 +155,16 @@ const BookDetailsPage = () => {
                     {displayedSubjects.map((subject, index) => (
                       <span
                         key={index}
-                        className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full"
+                        style={{
+                          background: 'rgba(16,185,129,0.12)',
+                          color: '#166534',
+                          fontWeight: 500,
+                          borderRadius: '9999px',
+                          padding: '0.25rem 0.9rem',
+                          fontSize: '0.95rem',
+                          letterSpacing: '0.01em',
+                          border: '1px solid rgba(16,185,129,0.18)',
+                        }}
                       >
                         {subject}
                       </span>
@@ -156,7 +173,17 @@ const BookDetailsPage = () => {
                   {hasMoreSubjects && (
                     <button
                       onClick={() => setShowAllSubjects(!showAllSubjects)}
-                      className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      style={{
+                        marginTop: '0.75rem',
+                        color: '#059669',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        transition: 'color 0.2s',
+                      }}
                     >
                       {showAllSubjects ? 'Voir moins' : `Voir ${currentBook.subjects!.length - SUBJECTS_LIMIT} sujets de plus`}
                     </button>
@@ -183,6 +210,12 @@ const BookDetailsPage = () => {
           </div>
         </div>
       </div>
+
+      {currentBook.wikiInfo && (
+        <div style={{ marginTop: '2rem' }}>
+          <WikiSection wikiInfo={currentBook.wikiInfo} />
+        </div>
+      )}
     </div>
   );
 };

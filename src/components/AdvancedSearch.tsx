@@ -1,4 +1,18 @@
 import React, { useState } from 'react';
+import {
+  Box,
+  Button,
+  Checkbox,
+  Flex,
+  FormControl,
+  FormLabel,
+  Input,
+  Select,
+  useColorModeValue,
+  VStack,
+  HStack,
+} from '@chakra-ui/react';
+import { SearchIcon } from '@chakra-ui/icons';
 
 export interface SearchFilters {
   query: string;
@@ -21,6 +35,8 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ onSearch }) => {
     type: ''
   });
 
+  const bg = useColorModeValue('white', 'gray.800');
+
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -37,107 +53,119 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ onSearch }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-white rounded-lg shadow">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Recherche principale */}
-        <div className="md:col-span-2">
-          <label htmlFor="query" className="block text-sm font-medium text-gray-700 mb-1">
-            Recherche
-          </label>
-          <input
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      borderRadius="2xl"
+      p={8}
+      w="full"
+      borderWidth="1.5px"
+      borderColor="whiteAlpha.400"
+      style={{
+        backdropFilter: 'blur(16px)',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 60%, rgba(200,255,220,0.18) 100%)',
+        WebkitBackdropFilter: 'blur(16px)',
+        boxShadow: '0 8px 32px 0 rgba(34,197,94,0.15)'
+      }}
+    >
+      <VStack spacing={6} align="stretch">
+        <FormControl>
+          <FormLabel>Recherche</FormLabel>
+          <Input
             type="text"
-            id="query"
             name="query"
             placeholder="Rechercher des livres..."
-            className="w-full border p-2 rounded-md"
             value={filters.query}
             onChange={handleInputChange}
+            borderRadius="lg"
+            bg={bg}
+            borderColor="green.200"
+            _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #38A16955' }}
+            fontSize="lg"
           />
-        </div>
-
-        {/* Langue */}
-        <div>
-          <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">
-            Langue
-          </label>
-          <select
-            id="language"
-            name="language"
-            className="w-full border p-2 rounded-md"
-            value={filters.language}
-            onChange={handleInputChange}
+        </FormControl>
+        <HStack spacing={4} align="stretch" flexWrap="wrap">
+          <FormControl flex={1} minW="180px">
+            <FormLabel>Langue</FormLabel>
+            <Select
+              name="language"
+              value={filters.language}
+              onChange={handleInputChange}
+              borderRadius="lg"
+              bg={bg}
+              borderColor="green.200"
+              _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #38A16955' }}
+            >
+              <option value="">Toutes les langues</option>
+              <option value="fre">Français</option>
+              <option value="eng">Anglais</option>
+              <option value="spa">Espagnol</option>
+              <option value="ger">Allemand</option>
+            </Select>
+          </FormControl>
+          <FormControl flex={1} minW="180px">
+            <FormLabel>Année de publication</FormLabel>
+            <Input
+              type="number"
+              name="year"
+              placeholder="Année de publication"
+              value={filters.year}
+              onChange={handleInputChange}
+              min={1000}
+              max={new Date().getFullYear()}
+              borderRadius="lg"
+              bg={bg}
+              borderColor="green.200"
+              _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #38A16955' }}
+            />
+          </FormControl>
+          <FormControl flex={1} minW="180px">
+            <FormLabel>Type de document</FormLabel>
+            <Select
+              name="type"
+              value={filters.type}
+              onChange={handleInputChange}
+              borderRadius="lg"
+              bg={bg}
+              borderColor="green.200"
+              _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #38A16955' }}
+            >
+              <option value="">Tous les types</option>
+              <option value="fiction">Fiction</option>
+              <option value="non-fiction">Non-fiction</option>
+              <option value="biography">Biographie</option>
+              <option value="poetry">Poésie</option>
+            </Select>
+          </FormControl>
+          <FormControl display="flex" alignItems="center" minW="180px" pt={7}>
+            <Checkbox
+              id="hasCovers"
+              name="hasCovers"
+              isChecked={filters.hasCovers}
+              onChange={handleInputChange}
+              colorScheme="green"
+              borderRadius="md"
+            >
+              Avec couverture uniquement
+            </Checkbox>
+          </FormControl>
+        </HStack>
+        <Flex justify="end">
+          <Button
+            type="submit"
+            colorScheme="green"
+            size="lg"
+            borderRadius="lg"
+            leftIcon={<SearchIcon />}
+            px={8}
+            _hover={{ bg: 'green.500', boxShadow: '0 4px 16px 0 rgba(34,197,94,0.15)' }}
+            transition="all 0.2s"
           >
-            <option value="">Toutes les langues</option>
-            <option value="fre">Français</option>
-            <option value="eng">Anglais</option>
-            <option value="spa">Espagnol</option>
-            <option value="ger">Allemand</option>
-          </select>
-        </div>
-
-        {/* Année */}
-        <div>
-          <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
-            Année de publication
-          </label>
-          <input
-            type="number"
-            id="year"
-            name="year"
-            placeholder="Année de publication"
-            className="w-full border p-2 rounded-md"
-            value={filters.year}
-            onChange={handleInputChange}
-            min="1000"
-            max={new Date().getFullYear()}
-          />
-        </div>
-
-        {/* Type de document */}
-        <div>
-          <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-            Type de document
-          </label>
-          <select
-            id="type"
-            name="type"
-            className="w-full border p-2 rounded-md"
-            value={filters.type}
-            onChange={handleInputChange}
-          >
-            <option value="">Tous les types</option>
-            <option value="fiction">Fiction</option>
-            <option value="non-fiction">Non-fiction</option>
-            <option value="biography">Biographie</option>
-            <option value="poetry">Poésie</option>
-          </select>
-        </div>
-
-        {/* Couverture */}
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="hasCovers"
-            name="hasCovers"
-            checked={filters.hasCovers}
-            onChange={handleInputChange}
-            className="rounded text-blue-500 focus:ring-blue-500"
-          />
-          <label htmlFor="hasCovers" className="text-sm text-gray-700">
-            Avec couverture uniquement
-          </label>
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition duration-300"
-        >
-          Rechercher
-        </button>
-      </div>
-    </form>
+            Rechercher
+          </Button>
+        </Flex>
+      </VStack>
+    </Box>
   );
 };
 

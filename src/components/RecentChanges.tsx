@@ -1,5 +1,22 @@
 import { useEffect } from 'react';
 import useRecentChangesStore from '../store/useRecentChangesStore';
+import {
+  Box,
+  Heading,
+  Text,
+  Button,
+  HStack,
+  VStack,
+  Badge,
+  Flex,
+  useColorModeValue,
+  IconButton,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+} from '@chakra-ui/react';
+import { RepeatIcon } from '@chakra-ui/icons';
 
 const RecentChanges = () => {
   const { changes, loading, error, fetchRecentChanges } = useRecentChangesStore();
@@ -26,17 +43,19 @@ const RecentChanges = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
+      <Flex justify="center" align="center" p={4}>
+        <Box as="span" className="animate-spin" borderRadius="full" h={8} w={8} borderBottom="2px solid" borderColor="green.400" />
+      </Flex>
     );
   }
 
   if (error) {
     return (
-      <div className="text-red-500 p-4">
-        {error}
-      </div>
+      <Alert status="error" borderRadius="lg" boxShadow="md" mt={2}>
+        <AlertIcon boxSize={6} />
+        <AlertTitle fontWeight="bold" mr={2}>Erreur :</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
@@ -45,87 +64,117 @@ const RecentChanges = () => {
       'add-book': {
         label: 'Nouveau livre',
         icon: '📚',
-        color: 'bg-green-100 text-green-800'
+        color: 'green'
       },
       'edit-book': {
         label: 'Modification de livre',
         icon: '✏️',
-        color: 'bg-blue-100 text-blue-800'
+        color: 'blue'
       },
       'merge-authors': {
         label: 'Fusion d\'auteurs',
         icon: '🤝',
-        color: 'bg-purple-100 text-purple-800'
+        color: 'purple'
       },
       'add-cover': {
         label: 'Nouvelle couverture',
         icon: '🖼️',
-        color: 'bg-yellow-100 text-yellow-800'
+        color: 'yellow'
       },
       'create-work': {
         label: 'Nouvelle œuvre',
         icon: '📖',
-        color: 'bg-green-100 text-green-800'
+        color: 'green'
       },
       'edit-work': {
         label: 'Modification d\'œuvre',
         icon: '✍️',
-        color: 'bg-blue-100 text-blue-800'
+        color: 'blue'
       },
       'create-edition': {
         label: 'Nouvelle édition',
         icon: '📕',
-        color: 'bg-indigo-100 text-indigo-800'
+        color: 'teal'
       },
       'edit-edition': {
         label: 'Modification d\'édition',
         icon: '📝',
-        color: 'bg-blue-100 text-blue-800'
+        color: 'blue'
       }
     };
-    return types[kind] || { label: kind, icon: '📌', color: 'bg-gray-100 text-gray-800' };
+    return types[kind] || { label: kind, icon: '📌', color: 'gray' };
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Activité Récente</h2>
-        <button
+    <Box
+      borderRadius="2xl"
+      p={6}
+      borderWidth="1.5px"
+      borderColor="whiteAlpha.400"
+      style={{
+        backdropFilter: 'blur(16px)',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 60%, rgba(200,255,220,0.18) 100%)',
+        WebkitBackdropFilter: 'blur(16px)',
+        boxShadow: '0 8px 32px 0 rgba(34,197,94,0.15)'
+      }}
+      w="full"
+    >
+      <Flex align="center" justify="space-between" mb={6}>
+        <HStack spacing={2}>
+          <span style={{ fontSize: 24 }}>🌱</span>
+          <Heading as="h2" size="lg" color="green.700">Activité Récente</Heading>
+        </HStack>
+        <IconButton
+          aria-label="Rafraîchir"
+          icon={<RepeatIcon />}
+          colorScheme="green"
+          variant="ghost"
+          size="sm"
           onClick={() => fetchRecentChanges(5)}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          Rafraîchir
-        </button>
-      </div>
-      <div className="space-y-4">
+        />
+      </Flex>
+      <VStack spacing={4} align="stretch">
         {changes.map((change) => {
           const typeInfo = getChangeTypeInfo(change.kind);
           return (
-            <div key={change.id} className="border-b border-gray-200 pb-4 last:border-b-0">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm ${typeInfo.color}`}>
-                      <span className="mr-1">{typeInfo.icon}</span>
-                      {typeInfo.label}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 text-sm">{change.comment || 'Pas de commentaire'}</p>
-                  {change.author && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Par {change.author.name || 'Anonyme'}
-                    </p>
-                  )}
-                </div>
-                <time className="text-sm text-gray-500 whitespace-nowrap ml-4">
-                  {formatDate(change.timestamp)}
-                </time>
-              </div>
-            </div>
+            <Flex
+              key={change.id}
+              align="center"
+              justify="space-between"
+              p={4}
+              borderRadius="xl"
+              bg={useColorModeValue('whiteAlpha.700', 'gray.900')}
+              boxShadow="sm"
+              borderWidth="1px"
+              borderColor={useColorModeValue('green.50', 'green.900')}
+              _hover={{ boxShadow: 'md', borderColor: 'green.200', bg: 'green.50' }}
+              transition="all 0.2s"
+              gap={4}
+            >
+              <Box flex={1} minW={0}>
+                <HStack spacing={2} mb={1}>
+                  <Badge colorScheme={typeInfo.color} borderRadius="full" px={2} py={1} fontSize="xs">
+                    <span style={{ marginRight: 4 }}>{typeInfo.icon}</span>
+                    {typeInfo.label}
+                  </Badge>
+                </HStack>
+                <Text color="gray.700" fontSize="sm" noOfLines={2}>
+                  {change.comment || 'Pas de commentaire'}
+                </Text>
+                {change.author && (
+                  <Text color="gray.500" fontSize="xs" mt={1}>
+                    Par {change.author.name || 'Anonyme'}
+                  </Text>
+                )}
+              </Box>
+              <Badge colorScheme="teal" variant="subtle" borderRadius="full" px={2} fontSize="xs">
+                {formatDate(change.timestamp)}
+              </Badge>
+            </Flex>
           );
         })}
-      </div>
-    </div>
+      </VStack>
+    </Box>
   );
 };
 
