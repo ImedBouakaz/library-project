@@ -5,10 +5,12 @@ export interface BookAuthor {
 }
 
 export interface BookWork {
-  key: string;
+  key: string; // e.g., /works/OL...
   title: string;
-  authors?: BookAuthor[];
-  cover_id?: number;
+  authors?: BookAuthor[]; // Keep for potential use, but search API uses author_name
+  author_name?: string[]; // From search API
+  cover_id?: number; // From subject API
+  cover_i?: number; // From search API
 }
 
 interface BookStoreState {
@@ -17,8 +19,14 @@ interface BookStoreState {
   error: string | null;
 }
 
+interface FetchBooksParams {
+  query?: string;
+  author?: string;
+  subject?: string;
+}
+
 interface BookStoreActions {
-  fetchBooks: (subject: string) => Promise<void>;
+  fetchBooks: (params: FetchBooksParams) => Promise<void>; // Accept params object
 }
 
 type BookStore = BookStoreState & BookStoreActions;
@@ -27,19 +35,36 @@ const useBookStore = create<BookStore>((set) => ({
   books: [],
   loading: false,
   error: null,
-  fetchBooks: async (subject) => {
+  fetchBooks: async (params) => { // Accept params object
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`/openlibrary-api/subjects/${subject}.json`, {
+      // Build the query string based on provided parameters
+      const searchParams = new URLSearchParams();
+      if (params.query) {
+        searchParams.append('q', params.query);
+      }
+      if (params.author) {
+        searchParams.append('author', params.author);
+      }
+      if (params.subject) {
+        searchParams.append('subject', params.subject);
+      }
+
+      // Construct the final URL
+      const url = `/openlibrary-api/search.json?${searchParams.toString()}`;
+
+      const response = await fetch(url, {
         headers: {
-          'User-Agent': 'LibrairieApp/1.0 (contact@example.com)'
+          'User-Agent': 'LibrairieApp/1.0 (contact@example.com)' // Replace with your app name and contact info
         }
       });
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data: { works: BookWork[] } = await response.json();
-      set({ books: data.works, loading: false });
+      
+      const data: { docs: BookWork[] } = await response.json();
+      set({ books: data.docs, loading: false });
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
