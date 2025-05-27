@@ -1,71 +1,92 @@
 import { create } from 'zustand';
+import type { SearchFilters } from '../components/AdvancedSearch';
 
 export interface BookAuthor {
   name: string;
 }
 
-export interface BookWork {
-  key: string; // e.g., /works/OL...
+export interface Book {
+  key: string;
   title: string;
-  authors?: BookAuthor[]; // Keep for potential use, but search API uses author_name
-  author_name?: string[]; // From search API
-  cover_id?: number; // From subject API
-  cover_i?: number; // From search API
+  authors?: BookAuthor[];
+  author_name?: string[];
+  cover_id?: number;
+  cover_i?: number;
+  language?: string[];
+  first_publish_year?: number;
+  subject?: string[];
 }
 
-interface BookStoreState {
-  books: BookWork[];
+interface BookStore {
+  books: Book[];
   loading: boolean;
   error: string | null;
+  fetchBooks: (filters: SearchFilters | string) => Promise<void>;
 }
-
-interface FetchBooksParams {
-  query?: string;
-  author?: string;
-  subject?: string;
-}
-
-interface BookStoreActions {
-  fetchBooks: (params: FetchBooksParams) => Promise<void>; // Accept params object
-}
-
-type BookStore = BookStoreState & BookStoreActions;
 
 const useBookStore = create<BookStore>((set) => ({
   books: [],
   loading: false,
   error: null,
-  fetchBooks: async (params) => { // Accept params object
+  fetchBooks: async (filters: SearchFilters | string) => {
     set({ loading: true, error: null });
     try {
-      // Build the query string based on provided parameters
-      const searchParams = new URLSearchParams();
-      if (params.query) {
-        searchParams.append('q', params.query);
-      }
-      if (params.author) {
-        searchParams.append('author', params.author);
-      }
-      if (params.subject) {
-        searchParams.append('subject', params.subject);
-      }
+      let url: string;
+      let queryParams = new URLSearchParams();
 
-      // Construct the final URL
-      const url = `/openlibrary-api/search.json?${searchParams.toString()}`;
-
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'LibrairieApp/1.0 (contact@example.com)' // Replace with your app name and contact info
+      if (typeof filters === 'string') {
+        // Recherche simple par sujet
+        url = `/api/subjects/${filters.toLowerCase()}.json`;
+      } else {
+        // Recherche avancée
+        url = `/api/search.json`;
+        
+        // Paramètre de recherche principal
+        queryParams.append('q', filters.query);
+        
+        // Filtres additionnels
+        if (filters.language) {
+          queryParams.append('language', filters.language);
         }
-      });
+        
+        if (filters.year) {
+          queryParams.append('first_publish_year', filters.year);
+        }
+        
+        if (filters.type) {
+          queryParams.append('subject', filters.type.toLowerCase());
+        }
+      }
+
+      // Construire l'URL finale
+      const finalUrl = `${url}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+
+      const response = await fetch(finalUrl);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
       
-      const data: { docs: BookWork[] } = await response.json();
-      set({ books: data.docs, loading: false });
+      // Adapter les données selon l'API utilisée
+      let books: Book[];
+      if (typeof filters === 'string') {
+        // Format de réponse pour l'API des sujets
+        books = data.works || [];
+      } else {
+        // Format de réponse pour l'API de recherche
+        books = data.docs || [];
+      }
+
+      // Filtrer les résultats si nécessaire
+      if (typeof filters === 'object' && filters.hasCovers) {
+        books = books.filter(book => book.cover_i || book.cover_id);
+      }
+
+      set({ books, loading: false });
     } catch (error: any) {
+      console.error('Erreur lors de la requête:', error);
       set({ error: error.message, loading: false });
     }
   },
