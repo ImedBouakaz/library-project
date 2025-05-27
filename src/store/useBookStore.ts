@@ -62,7 +62,7 @@ const useBookStore = create<BookStore>((set) => ({
 
       if (typeof filters === 'string') {
         // Recherche simple
-        searchQuery = encodeURIComponent(filters);
+        searchQuery = filters;
       } else {
         // Recherche avancée
         const searchTerms = [];
@@ -76,6 +76,7 @@ const useBookStore = create<BookStore>((set) => ({
         }
         
         if (filters.year) {
+          // Utilisation du format correct pour la recherche par année
           searchTerms.push(`first_publish_year:${filters.year}`);
         }
         
@@ -83,14 +84,20 @@ const useBookStore = create<BookStore>((set) => ({
           searchTerms.push(`subject:${filters.type.toLowerCase()}`);
         }
 
-        searchQuery = encodeURIComponent(searchTerms.join(' '));
+        if (filters.hasCovers) {
+          searchTerms.push('has_cover:true');
+        }
+
+        searchQuery = searchTerms.join(' ');
       }
 
       const url = new URL('/search.json', OPEN_LIBRARY_API);
       url.searchParams.append('q', searchQuery);
       url.searchParams.append('fields', 'key,title,author_name,cover_i,language,first_publish_year,subject,edition_count,has_fulltext,ia');
       url.searchParams.append('limit', '20');
-      url.searchParams.append('mode', 'everything');
+
+      console.log('URL de recherche:', url.toString());
+      console.log('Termes de recherche:', searchQuery);
 
       const response = await fetch(url.toString(), {
         headers: {
@@ -103,6 +110,7 @@ const useBookStore = create<BookStore>((set) => ({
       }
 
       const data = await response.json();
+      console.log('Réponse de l\'API:', data);
       
       if (!data.docs || data.docs.length === 0) {
         set({ 
