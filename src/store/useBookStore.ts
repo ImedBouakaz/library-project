@@ -2,7 +2,13 @@ import { create } from 'zustand';
 import type { SearchFilters } from '../components/AdvancedSearch';
 
 export interface BookAuthor {
+  key: string;
   name: string;
+}
+
+export interface WikiInfo {
+  extract?: string;
+  url?: string;
 }
 
 export interface Book {
@@ -15,53 +21,82 @@ export interface Book {
   language?: string[];
   first_publish_year?: number;
   subject?: string[];
+  edition_count?: number;
+  ia?: string[];
+  has_fulltext?: boolean;
+}
+
+export interface BookDetails extends Book {
+  description?: string | { value: string };
+  subjects?: string[];
+  publish_date?: string;
+  publishers?: string[];
+  number_of_pages?: number;
+  isbn_13?: string[];
+  isbn_10?: string[];
+  covers?: number[];
+  wikiInfo?: WikiInfo;
 }
 
 interface BookStore {
   books: Book[];
+  currentBook: BookDetails | null;
   loading: boolean;
   error: string | null;
   fetchBooks: (filters: SearchFilters | string) => Promise<void>;
+  fetchBookDetails: (key: string) => Promise<void>;
 }
+
+const OPEN_LIBRARY_API = 'https://openlibrary.org';
 
 const useBookStore = create<BookStore>((set) => ({
   books: [],
+  currentBook: null,
   loading: false,
   error: null,
+  
   fetchBooks: async (filters: SearchFilters | string) => {
     set({ loading: true, error: null });
     try {
-      let url: string;
-      let queryParams = new URLSearchParams();
+      let searchQuery = '';
 
       if (typeof filters === 'string') {
-        // Recherche simple par sujet
-        url = `/api/subjects/${filters.toLowerCase()}.json`;
+        // Recherche simple
+        searchQuery = encodeURIComponent(filters);
       } else {
         // Recherche avancée
-        url = `/api/search.json`;
+        const searchTerms = [];
         
-        // Paramètre de recherche principal
-        queryParams.append('q', filters.query);
+        if (filters.query) {
+          searchTerms.push(filters.query);
+        }
         
-        // Filtres additionnels
         if (filters.language) {
-          queryParams.append('language', filters.language);
+          searchTerms.push(`language:${filters.language.toLowerCase()}`);
         }
         
         if (filters.year) {
-          queryParams.append('first_publish_year', filters.year);
+          searchTerms.push(`first_publish_year:${filters.year}`);
         }
         
         if (filters.type) {
-          queryParams.append('subject', filters.type.toLowerCase());
+          searchTerms.push(`subject:${filters.type.toLowerCase()}`);
         }
+
+        searchQuery = encodeURIComponent(searchTerms.join(' '));
       }
 
-      // Construire l'URL finale
-      const finalUrl = `${url}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const url = new URL('/search.json', OPEN_LIBRARY_API);
+      url.searchParams.append('q', searchQuery);
+      url.searchParams.append('fields', 'key,title,author_name,cover_i,language,first_publish_year,subject,edition_count,has_fulltext,ia');
+      url.searchParams.append('limit', '20');
+      url.searchParams.append('mode', 'everything');
 
-      const response = await fetch(finalUrl);
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -69,25 +104,124 @@ const useBookStore = create<BookStore>((set) => ({
 
       const data = await response.json();
       
-      // Adapter les données selon l'API utilisée
-      let books: Book[];
-      if (typeof filters === 'string') {
-        // Format de réponse pour l'API des sujets
-        books = data.works || [];
-      } else {
-        // Format de réponse pour l'API de recherche
-        books = data.docs || [];
+      if (!data.docs || data.docs.length === 0) {
+        set({ 
+          error: "Aucun livre trouvé pour cette recherche", 
+          loading: false,
+          books: []
+        });
+        return;
       }
 
-      // Filtrer les résultats si nécessaire
-      if (typeof filters === 'object' && filters.hasCovers) {
-        books = books.filter(book => book.cover_i || book.cover_id);
-      }
+      const books = data.docs.map((doc: any): Book => ({
+        key: doc.key,
+        title: doc.title,
+        author_name: doc.author_name,
+        cover_i: doc.cover_i,
+        language: doc.language,
+        first_publish_year: doc.first_publish_year,
+        subject: doc.subject,
+        edition_count: doc.edition_count,
+        has_fulltext: doc.has_fulltext,
+        ia: doc.ia
+      }));
 
-      set({ books, loading: false });
+      set({ books, loading: false, error: null });
     } catch (error: any) {
-      console.error('Erreur lors de la requête:', error);
-      set({ error: error.message, loading: false });
+      console.error('Erreur lors de la recherche:', error);
+      set({ 
+        error: `Erreur lors de la recherche : ${error.message}`, 
+        loading: false,
+        books: []
+      });
+    }
+  },
+
+  fetchBookDetails: async (key: string) => {
+    set({ loading: true, error: null });
+    try {
+      const cleanKey = key.replace('/works/', '');
+      const bookUrl = new URL(`/works/${cleanKey}.json`, OPEN_LIBRARY_API);
+      
+      const bookResponse = await fetch(bookUrl.toString(), {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!bookResponse.ok) {
+        throw new Error(`HTTP error! status: ${bookResponse.status}`);
+      }
+
+      const bookData = await bookResponse.json();
+
+      let authors: BookAuthor[] = [];
+      if (bookData.authors) {
+        const authorPromises = bookData.authors.map(async (author: { author: { key: string } }) => {
+          const authorKey = author.author.key.replace('/authors/', '');
+          const authorUrl = new URL(`/authors/${authorKey}.json`, OPEN_LIBRARY_API);
+          const authorResponse = await fetch(authorUrl.toString(), {
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (authorResponse.ok) {
+            const authorData = await authorResponse.json();
+            return {
+              key: authorData.key,
+              name: authorData.name
+            };
+          }
+          return null;
+        });
+
+        authors = (await Promise.all(authorPromises)).filter((author): author is BookAuthor => author !== null);
+      }
+
+      let wikiInfo: WikiInfo | undefined;
+      try {
+        const searchTerm = `${bookData.title} ${authors.length > 0 ? 'by ' + authors[0].name : ''}`;
+        const wikiUrl = new URL('https://fr.wikipedia.org/w/api.php');
+        wikiUrl.searchParams.append('action', 'query');
+        wikiUrl.searchParams.append('format', 'json');
+        wikiUrl.searchParams.append('prop', 'extracts|info');
+        wikiUrl.searchParams.append('exintro', '1');
+        wikiUrl.searchParams.append('explaintext', '1');
+        wikiUrl.searchParams.append('inprop', 'url');
+        wikiUrl.searchParams.append('titles', searchTerm);
+        wikiUrl.searchParams.append('origin', '*');
+
+        const wikiResponse = await fetch(wikiUrl.toString());
+        
+        if (wikiResponse.ok) {
+          const wikiData = await wikiResponse.json();
+          const pages = wikiData.query.pages;
+          const pageId = Object.keys(pages)[0];
+          
+          if (pageId !== '-1') {
+            wikiInfo = {
+              extract: pages[pageId].extract,
+              url: pages[pageId].fullurl
+            };
+          }
+        }
+      } catch (wikiError) {
+        console.error('Erreur lors de la récupération des informations Wikipedia:', wikiError);
+      }
+
+      const enrichedBook: BookDetails = {
+        ...bookData,
+        authors: authors.length > 0 ? authors : undefined,
+        cover_i: bookData.covers ? bookData.covers[0] : undefined,
+        covers: bookData.covers,
+        wikiInfo
+      };
+
+      set({ currentBook: enrichedBook, loading: false });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des détails du livre:', error);
+      set({ error: (error as Error).message, loading: false });
     }
   },
 }));

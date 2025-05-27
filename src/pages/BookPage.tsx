@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useBookStore from '../store/useBookStore';
 import type { Book, BookAuthor } from '../store/useBookStore';
 import type { SearchFilters } from '../components/AdvancedSearch';
@@ -9,6 +10,7 @@ import AdvancedSearchSkeleton from '../components/AdvancedSearchSkeleton';
 import BookSkeleton from '../components/BookSkeleton';
 
 const BookPage = () => {
+  const navigate = useNavigate();
   const { books, loading, error, fetchBooks } = useBookStore();
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
@@ -23,6 +25,12 @@ const BookPage = () => {
   const handleAdvancedSearch = (filters: SearchFilters) => {
     fetchBooks(filters); // Recherche avancée avec filtres
     setShowAdvancedSearch(false); // Fermer le panneau après la recherche
+  };
+
+  const handleBookClick = (bookKey: string) => {
+    // Enlever le préfixe "/works/" si présent dans la clé
+    const cleanKey = bookKey.replace('/works/', '');
+    navigate(`/book/${cleanKey}`);
   };
 
   const renderSearchSection = () => {
@@ -76,7 +84,11 @@ const BookPage = () => {
             const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : null;
 
             return (
-              <div key={book.key} className="bg-gray-50 rounded-xl shadow-md p-4 flex flex-col items-center text-center transition-transform transform hover:scale-105 duration-300">
+              <div
+                key={book.key}
+                className="bg-gray-50 rounded-xl shadow-md p-4 flex flex-col items-center text-center transition-transform transform hover:scale-105 duration-300 cursor-pointer"
+                onClick={() => handleBookClick(book.key)}
+              >
                 {coverUrl ? (
                   <img 
                     src={coverUrl}
